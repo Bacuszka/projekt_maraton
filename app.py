@@ -3,9 +3,10 @@ import pandas as pd
 import os
 import json
 import tempfile
+import sounddevice as sd
+import scipy.io.wavfile as wav
 from dotenv import load_dotenv
 from pycaret.regression import load_model, predict_model
-import speech_recognition as sr
 from openai import OpenAI
 from langfuse import Langfuse
 
@@ -47,15 +48,15 @@ def load_model_from_spaces():
         return None
 
 def recognize_speech():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("🎤 Proszę mówić teraz!")
-        audio = recognizer.listen(source)
+    st.info("🎤 Rozpoczyna się nagrywanie. Mów teraz...")
+    duration = 5  # czas nagrania w sekundach
+    fs = 44100  # częstotliwość próbkowania
+    recording = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='int16')
+    sd.wait()
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
+        wav.write(tmp_file.name, fs, recording)
         wav_path = tmp_file.name
-        with open(wav_path, "wb") as f:
-            f.write(audio.get_wav_data())
 
     try:
         with open(wav_path, "rb") as audio_file:
@@ -163,7 +164,6 @@ if 'speech_input' in st.session_state:
                     result_text = f"🏅 Przewidywany czas maratonu: **{hours}h {minutes}m**"
                     st.success(result_text)
 
-                    # Historia
                     if 'history' not in st.session_state:
                         st.session_state.history = []
 
@@ -176,16 +176,13 @@ if 'speech_input' in st.session_state:
 
                     st.session_state.history.append(record)
 
-                    # Zapisz historię do pliku JSON
                     history_path = "history_maratonu.json"
                     with open(history_path, "w", encoding="utf-8") as f:
                         json.dump(st.session_state.history, f, ensure_ascii=False, indent=2)
 
-                    # 🔄 Trace Langfuse
                     trace = langfuse.trace(name="marathon_prediction")
                     trace.update(user_id="uzytkownik_streamlit")
 
-                    # 🔉 Wypowiedź użytkownika
                     trace.span(
                         name="rozpoznana_wypowiedz",
                         input="audio",
@@ -193,7 +190,6 @@ if 'speech_input' in st.session_state:
                         metadata={"etap": "rozpoznawanie_mowy"}
                     )
 
-                    # 🧠 Prompt do OpenAI
                     gpt_prompt = f"""
                     Wypowiedź: "{st.session_state.speech_input}"
 
@@ -214,7 +210,6 @@ if 'speech_input' in st.session_state:
                         metadata={"etap": "openai_extract"}
                     )
 
-                    # 📊 Dane wejściowe do modelu
                     trace.span(
                         name="dane_wejsciowe_model",
                         input=json.dumps({
@@ -225,14 +220,11 @@ if 'speech_input' in st.session_state:
                         metadata={"etap": "model_input"}
                     )
 
-                    # 🔮 Wynik predykcji
                     trace.span(
                         name="wynik_predykcji",
                         output=json.dumps(record, ensure_ascii=False),
                         metadata={"etap": "model_output"}
                     )
-
-
                 else:
                     st.error("❌ Nie znaleziono kolumny 'prediction_label' w wyniku predykcji.")
                     st.write(prediction)
