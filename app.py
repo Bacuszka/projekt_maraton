@@ -87,10 +87,8 @@ Zwróć **tylko JSON**, bez żadnych komentarzy.
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "Jesteś pomocnym asystentem, który przetwarza wypowiedzi na dane wejściowe do modelu predykcji czasu maratonu."},
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role": "system", "content": "Jesteś pomocnym asystentem, który przetwarza wypowiedzi na dane wejściowe do modelu predykcji czasu maratonu."},
+                      {"role": "user", "content": prompt}],
             temperature=0.2,
         )
 
@@ -194,11 +192,7 @@ if 'speech_input' in st.session_state:
                     Wypowiedź: "{st.session_state.speech_input}"
 
                     Wyodrębnij dane w formacie JSON:
-                    {{
-                    "płeć": "Mężczyzna" lub "Kobieta",
-                    "wiek": liczba całkowita,
-                    "tempo_5km": liczba zmiennoprzecinkowa (np. 6.8)
-                    }}
+                    {{"płeć": "Mężczyzna" lub "Kobieta", "wiek": liczba całkowita, "tempo_5km": liczba zmiennoprzecinkowa (np. 6.8)}}
 
                     Zwróć **tylko JSON**, bez żadnych komentarzy.
                     """
