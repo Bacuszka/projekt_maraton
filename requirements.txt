@@ -1,8 +1,9 @@
-streamlit==1.30.0
-pandas==1.5.3
-scikit-learn==1.2.2
+streamlit>=1.29.0
+pandas
+scikit-learn>=1.4.0
 pycaret==3.3.0
-python-dotenv==1.0.1
-openai==1.14.3
-langfuse==2.60.3
-git+https://github.com/stefanrmmr/streamlit-audio-recorder.git#egg=streamlit-audiorec
+python-dotenv
+openai>=1.0.0
+langfuse
+git+https://github.com/stefanrmmr/streamlit-audio-recorder.git#egg=audio-recorder-streamlit
+joblib==1.2.0
