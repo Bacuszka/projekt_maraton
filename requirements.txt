@@ -1,6 +1,6 @@
 streamlit>=1.29.0
 pandas
-scikit-learn>=1.4.0
+scikit-learn==1.4.2
 pycaret==3.3.0
 python-dotenv
 openai>=1.0.0
