@@ -3,12 +3,12 @@ import pandas as pd
 import os
 import json
 import tempfile
-import sounddevice as sd
-import scipy.io.wavfile as wav
+import base64
 from dotenv import load_dotenv
 from pycaret.regression import load_model, predict_model
 from openai import OpenAI
 from langfuse import Langfuse
+from audio_recorder_streamlit import audio_recorder
 
 # 🔄 Wczytaj zmienne środowiskowe Langfuse
 load_dotenv()
@@ -17,7 +17,6 @@ LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
 LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
 LANGFUSE_HOST = os.getenv("LANGFUSE_HOST")
 
-# Inicjalizacja klienta Langfuse
 langfuse = Langfuse(
     secret_key=LANGFUSE_SECRET_KEY,
     public_key=LANGFUSE_PUBLIC_KEY,
@@ -26,16 +25,14 @@ langfuse = Langfuse(
 
 st.title("🏃‍♂️ Predykcja czasu maratonu na podstawie Twojej wypowiedzi")
 
-# 🔑 Wprowadzenie klucza API OpenAI
+# 🔑 Klucz OpenAI
 api_key = st.text_input("🔑 Wprowadź swój klucz OpenAI API:", type="password")
 
 if not api_key:
     st.warning("⚠️ Wprowadź klucz OpenAI, aby kontynuować.")
     st.stop()
 
-# Inicjalizacja klienta OpenAI
 client = OpenAI(api_key=api_key)
-
 MODEL_FILENAME = "best_marathon_model"
 
 def load_model_from_spaces():
@@ -47,26 +44,20 @@ def load_model_from_spaces():
         st.error(f"❌ Błąd podczas ładowania modelu: {e}")
         return None
 
-def recognize_speech():
-    st.info("🎤 Rozpoczyna się nagrywanie. Mów teraz...")
-    duration = 5  # czas nagrania w sekundach
-    fs = 44100  # częstotliwość próbkowania
-    recording = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='int16')
-    sd.wait()
-
+def recognize_speech_from_audio(audio_bytes):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-        wav.write(tmp_file.name, fs, recording)
-        wav_path = tmp_file.name
+        tmp_file.write(audio_bytes)
+        tmp_file_path = tmp_file.name
 
     try:
-        with open(wav_path, "rb") as audio_file:
+        with open(tmp_file_path, "rb") as f:
             transcript = client.audio.transcriptions.create(
                 model="whisper-1",
-                file=audio_file,
+                file=f,
                 response_format="text",
                 language="pl"
             )
-            return transcript
+        return transcript
     except Exception as e:
         st.error(f"❌ Błąd rozpoznawania mowy przez Whisper: {e}")
         return None
@@ -87,11 +78,12 @@ Zwróć **tylko JSON**, bez żadnych komentarzy.
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "system", "content": "Jesteś pomocnym asystentem, który przetwarza wypowiedzi na dane wejściowe do modelu predykcji czasu maratonu."},
-                      {"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "Jesteś pomocnym asystentem, który przetwarza wypowiedzi na dane wejściowe do modelu predykcji czasu maratonu."},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.2,
         )
-
         reply = response.choices[0].message.content.strip()
         st.code(reply, language="json")
 
@@ -106,24 +98,23 @@ Zwróć **tylko JSON**, bez żadnych komentarzy.
         return None
 
 st.markdown("""
-🧾 **Instrukcje użytkowania:**
+🧾 **Instrukcja użytkowania:**
 
-Kliknij przycisk 🎤 **Rozpocznij rozpoznawanie mowy**.
-
-Wypowiedz dane w formacie:  
-`mężczyzna, 33 lata, tempo 6,8`
-
-💡 *Mów powoli i wyraźnie. Tempo można podać z przecinkiem lub kropką.*
+1. Kliknij przycisk nagrywania 🎙️ poniżej.
+2. Wypowiedz dane w formacie: `mężczyzna, 33 lata, tempo 6,8`
+3. Poczekaj na przetworzenie — model wygeneruje przewidywany czas maratonu.
 """)
 
 with st.spinner("🔄 Ładowanie modelu..."):
     model = load_model_from_spaces()
-
 if model is None:
     st.stop()
 
-if st.button("🎤 Rozpocznij rozpoznawanie mowy"):
-    speech_input = recognize_speech()
+audio_bytes = audio_recorder(pause_threshold=2.0)
+
+if audio_bytes:
+    st.audio(audio_bytes, format="audio/wav")
+    speech_input = recognize_speech_from_audio(audio_bytes)
     if speech_input:
         st.session_state.speech_input = speech_input
 
@@ -192,7 +183,11 @@ if 'speech_input' in st.session_state:
                     Wypowiedź: "{st.session_state.speech_input}"
 
                     Wyodrębnij dane w formacie JSON:
-                    {{"płeć": "Mężczyzna" lub "Kobieta", "wiek": liczba całkowita, "tempo_5km": liczba zmiennoprzecinkowa (np. 6.8)}}
+                    {{
+                    "płeć": "Mężczyzna" lub "Kobieta",
+                    "wiek": liczba całkowita,
+                    "tempo_5km": liczba zmiennoprzecinkowa (np. 6.8)
+                    }}
 
                     Zwróć **tylko JSON**, bez żadnych komentarzy.
                     """
@@ -221,14 +216,10 @@ if 'speech_input' in st.session_state:
                     )
                 else:
                     st.error("❌ Nie znaleziono kolumny 'prediction_label' w wyniku predykcji.")
-                    st.write(prediction)
-
         except Exception as e:
             st.error(f"❌ Błąd przetwarzania danych: {e}")
     else:
         st.error("❌ Nie udało się wyodrębnić danych z wypowiedzi.")
-else:
-    st.info("Kliknij przycisk, aby podać dane głosowo.")
 
 if 'history' in st.session_state and st.session_state.history:
     st.markdown("## 🕓 Historia predykcji")
