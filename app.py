@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import json
 import tempfile
+import base64
 from dotenv import load_dotenv
 from pycaret.regression import load_model, predict_model
 from openai import OpenAI
