@@ -5,4 +5,4 @@ pycaret==3.3.0
 python-dotenv
 openai>=1.0.0
 langfuse
-audio-recorder-streamlit @ git+https://github.com/stefanrmmr/streamlit-audio-recorder.git
+streamlit-audiorec @ git+https://github.com/stefanrmmr/streamlit-audio-recorder.git
