@@ -6,3 +6,4 @@ python-dotenv
 openai>=1.0.0
 langfuse
 streamlit-audiorec @ git+https://github.com/stefanrmmr/streamlit-audio-recorder.git
+joblib==1.2.0
