@@ -1,12 +1,10 @@
 streamlit
 pandas
 python-dotenv
-pycaret
+requests
 openai
-langfuse
-audio-recorder-streamlit
+joblib
+pycaret
 scikit-learn
-numpy
-matplotlib
-plotly
-scipy
+audio-recorder-streamlit
+langfuse

@@ -9,6 +9,9 @@ from pycaret.regression import load_model, predict_model
 from openai import OpenAI
 from langfuse import Langfuse
 from audio_recorder_streamlit import audio_recorder
+import requests
+import joblib
+import tempfile
 
 # 🔄 Wczytaj zmienne środowiskowe Langfuse
 load_dotenv()
@@ -35,13 +38,26 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 MODEL_FILENAME = "best_marathon_model"
 
+MODEL_URL = "https://wiadro.fra1.cdn.digitaloceanspaces.com/best_marathon_model.pkl"
+
 def load_model_from_spaces():
     try:
-        model = load_model(MODEL_FILENAME)
-        st.success("✅ Model został pomyślnie załadowany!")
+        # Pobierz plik modelu
+        response = requests.get(MODEL_URL)
+        response.raise_for_status()
+
+        # Zapisz do tymczasowego pliku
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pkl") as tmp_file:
+            tmp_file.write(response.content)
+            tmp_model_path = tmp_file.name
+
+        # Wczytaj model z pliku tymczasowego
+        model = joblib.load(tmp_model_path)
+        st.success("✅ Model został pomyślnie załadowany z DigitalOcean Spaces.")
         return model
+
     except Exception as e:
-        st.error(f"❌ Błąd podczas ładowania modelu: {e}")
+        st.error(f"❌ Błąd podczas pobierania lub ładowania modelu: {e}")
         return None
 
 def recognize_speech_from_audio(audio_bytes):
