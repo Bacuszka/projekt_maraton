@@ -1,14 +1,20 @@
 [
   {
     "Płeć": "Mężczyzna",
-    "Wiek": 33,
+    "Wiek": 30,
     "Tempo": 6.8,
-    "Czas (h:m)": "4h 13m"
+    "Czas (h:m)": "106h 9m"
   },
   {
-    "Płeć": "Kobieta",
-    "Wiek": 41,
-    "Tempo": 5.000000000000006,
-    "Czas (h:m)": "4h 48m"
+    "Płeć": "Mężczyzna",
+    "Wiek": 30,
+    "Tempo": 6.8,
+    "Czas (h:m)": "106h 9m"
+  },
+  {
+    "Płeć": "Mężczyzna",
+    "Wiek": 30,
+    "Tempo": 2.0,
+    "Czas (h:m)": "106h 9m"
   }
 ]
